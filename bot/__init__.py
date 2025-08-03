@@ -1,26 +1,38 @@
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import logging
-import os
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-LOGGER = logging.getLogger(__name__)
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
+# Setup logging for debugging (optional)
+logging.basicConfig(level=logging.INFO)
 
+# Your Telegram user ID (replace with your actual ID)
+OWNER_ID = 123456789  
+PIN_KEYWORDS = ["Task:"]
 
-class ENV_VARS(object):
-    API_ID = int(os.environ.get("API_ID"))
-    API_HASH = os.environ.get("API_HASH")
-    BOT_TOKEN = os.environ.get("BOT_TOKEN")
-    BOT_USERNAME = os.environ.get("BOT_USERNAME")
-    #AUTH_USER = int(os.environ.get("AUTH_USER", 5071059420))
+# Create the bot
+BOT_TOKEN = "7207998050:AAF-VBEQv7znDL1qJgv-zGbmbGF_gjwhv5w"
 
+async def pin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    user_id = message.from_user.id
+    text = message.text or ""
 
-Config = ENV_VARS
+    # Check if message is from owner or contains keywords
+    if user_id == OWNER_ID or any(keyword in text for keyword in PIN_KEYWORDS):
+        try:
+            await context.bot.pin_chat_message(
+                chat_id=message.chat_id,
+                message_id=message.message_id,
+                disable_notification=True  # optional: don't notify group
+            )
+        except Exception as e:
+            logging.warning(f"Failed to pin message: {e}")
 
-handler = Config.BOT_USERNAME
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), pin_handler)
+    app.add_handler(message_handler)
 
-
-class CMD(object):
-    START = ["start", f"start@{handler}"]
+    print("Bot is running...")
+    app.run_polling() 
